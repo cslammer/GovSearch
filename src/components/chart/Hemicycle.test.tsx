@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Hemicycle } from './Hemicycle';
 import { makeRoster } from '../../__fixtures__/members';
 
@@ -18,7 +18,8 @@ describe('<Hemicycle>', () => {
     const onSelect = vi.fn();
     render(<Hemicycle members={members} onSelect={onSelect} onHover={vi.fn()} />);
     const seats = screen.getAllByRole('button').filter((b) => b.getAttribute('aria-label')?.includes('—'));
-    seats[0].click();
+    // Seats are SVG <g> elements, which lack HTMLElement.click() in jsdom.
+    fireEvent.click(seats[0]);
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 

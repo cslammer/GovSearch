@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { GroupedGrid } from './GroupedGrid';
 import { makeMember } from '../__fixtures__/members';
 
@@ -20,9 +20,19 @@ describe('<GroupedGrid>', () => {
 
   it('fires onSelect for a chip click', () => {
     const onSelect = vi.fn();
-    const m = makeMember({ lastName: 'Adams', state: 'CA', stateName: 'California', party: 'D', bloc: 'D' });
+    // The chip's accessible name is the aria-label (fullName + party), so set
+    // fullName explicitly to match the query.
+    const m = makeMember({
+      firstName: 'Jane',
+      lastName: 'Adams',
+      fullName: 'Jane Adams',
+      state: 'CA',
+      stateName: 'California',
+      party: 'D',
+      bloc: 'D',
+    });
     render(<GroupedGrid members={[m]} onSelect={onSelect} onHover={vi.fn()} />);
-    screen.getByRole('button', { name: /Adams/ }).click();
+    fireEvent.click(screen.getByRole('button', { name: /Jane Adams/ }));
     expect(onSelect).toHaveBeenCalledWith(m);
   });
 });
