@@ -17,4 +17,4 @@
 // Leaving it blank is also fine: the seating chart and bios work without it;
 // only the votes section shows a "add a key" note.
 // ─────────────────────────────────────────────────────────────────────────────
-export const HARDCODED_CONGRESS_KEY = '';
+export const HARDCODED_CONGRESS_KEY = 'TdOt84jvIMDoRMqbV81a46fdWyZhahaininyYepZ';
