@@ -50,17 +50,38 @@ npm run dev
 
 ## Getting and setting the Congress.gov API key
 
-1. Request a free key at **https://api.data.gov/signup/** (instant, no cost).
-2. Set it depending on how you run the app:
+### How to get a key (takes about a minute)
 
-   - **Development:** put it in `.env.local` as `CONGRESS_API_KEY=...`. The Vite dev proxy reads
-     it server-side; it is **not** exposed to the browser.
-   - **Production (recommended):** set it as a secret on the proxy (see
-     [Production & the proxy](#production--the-proxy)). The key stays server-side.
-   - **Production without a backend (fallback):** set `VITE_CONGRESS_API_KEY=...` at build time.
-     ⚠️ **Any `VITE_`-prefixed variable is embedded in the public client bundle** — the key will be
-     visible to anyone. Only use this for throwaway demos, and never reuse that key elsewhere. This
-     mode also can't reach the Senate, and may hit CORS limits depending on the API's headers.
+1. Go to **https://api.data.gov/signup/**.
+2. Enter your name and email and submit. The key is shown on the page **and** emailed to you
+   instantly — there's no approval wait and no cost. (This single key works for Congress.gov and
+   every other api.data.gov service.)
+3. Copy the long alphanumeric string (e.g. `a1B2c3D4e5F6...`).
+
+### Where to put it
+
+**Simplest — hard-code it (works on GitHub Pages with no proxy):** open
+[`src/lib/apiKey.ts`](./src/lib/apiKey.ts) and paste the key between the quotes:
+
+```ts
+export const HARDCODED_CONGRESS_KEY = 'a1B2c3D4e5F6...your key...';
+```
+
+Rebuild/redeploy and House votes + bill summaries light up. This is the path wired up for the
+GitHub Pages deploy below.
+
+> ⚠️ **This key becomes public.** Anything compiled into a static site (a hard-coded constant or
+> any `VITE_`-prefixed env var) ships in the downloadable JS bundle, so anyone can read it. That's
+> an accepted tradeoff for *this specific* key: the api.data.gov Congress.gov key is free,
+> read-only, public-data, rate-limited (~5,000 requests/hour), and re-issued in seconds — so a
+> leak is harmless. **Don't reuse it** for anything sensitive, and never hard-code a valuable key.
+
+**Other options**
+
+- **Development:** instead of hard-coding, put `CONGRESS_API_KEY=...` in `.env.local`. The Vite dev
+  proxy reads it server-side, so it's not exposed to the browser, and it enables Senate votes too.
+- **Production with the key kept private:** deploy the [proxy](#production--the-proxy) and set the
+  key as a server secret. This also unlocks the Senate. (Hard-coding does House only.)
 
 If no key is configured at all, the chart and bios still work fully; the vote section of the
 detail panel shows a friendly note explaining how to add one.
@@ -125,6 +146,30 @@ the UI labels them as such with the date range and the exact denominator.
   measured against the party they caucus with.
 
 ---
+
+## Hosting on GitHub Pages
+
+This repo includes a workflow ([`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml))
+that builds the site and publishes it to GitHub Pages on every push to `main`. One-time setup:
+
+1. **(Optional) Add your API key** so votes work on the live site: paste it into
+   [`src/lib/apiKey.ts`](./src/lib/apiKey.ts) (see above) and commit. Skip this and the chart still
+   works; only the votes section shows a "add a key" note.
+2. **Enable Pages:** in the repo on GitHub, go to **Settings → Pages → Build and deployment** and
+   set **Source = "GitHub Actions"**.
+3. **Push to `main`** (or trigger the workflow manually from the **Actions** tab → *Deploy to
+   GitHub Pages* → *Run workflow*).
+4. Watch the **Actions** tab. When the *Deploy to GitHub Pages* run finishes, your site is live at:
+   - `https://<your-username>.github.io/<repo-name>/` for a normal project repo, or
+   - `https://<your-username>.github.io/` if the repo is named `<your-username>.github.io`.
+
+The workflow sets the correct base path automatically (GitHub Pages serves project repos from a
+`/<repo-name>/` sub-path), so asset URLs resolve correctly with no manual config.
+
+> **Note:** GitHub Pages is a static host (no server), so only the hard-coded-key path applies
+> there. That enables **House** votes + bill summaries. **Senate** votes need the
+> [proxy](#production--the-proxy), which you'd deploy separately (e.g. a free Cloudflare Worker)
+> and point at via the `VITE_API_BASE` build variable.
 
 ## Production & the proxy
 

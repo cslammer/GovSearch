@@ -4,24 +4,31 @@
 // The seating chart needs NONE of this (it reads the public roster directly).
 // Vote data has three reachability modes, in priority order:
 //   1. Absolute proxy   — VITE_API_BASE points at a deployed serverless proxy.
-//   2. Dev proxy        — `npm run dev`; Vite's server.proxy injects the key.
-//   3. Direct fallback  — VITE_CONGRESS_API_KEY set; call api.congress.gov with
+//   2. Direct           — a key is hard-coded in apiKey.ts or set via
+//                         VITE_CONGRESS_API_KEY; call api.congress.gov with
 //                         ?api_key= (House only; key is embedded in the bundle).
+//   3. Dev proxy        — `npm run dev`; Vite's server.proxy injects the key.
 // With none of these in production, votes are "unconfigured" → the panel shows
 // friendly setup guidance instead of erroring.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { HARDCODED_CONGRESS_KEY } from './apiKey';
+
 const env = import.meta.env;
 const apiBase = (env.VITE_API_BASE ?? '').replace(/\/$/, '');
-const directKey = env.VITE_CONGRESS_API_KEY ?? '';
+// A key may come from a build-time env var OR be hard-coded in apiKey.ts (the
+// simplest path for static hosting). Either enables "direct" mode.
+const directKey = (env.VITE_CONGRESS_API_KEY || HARDCODED_CONGRESS_KEY || '').trim();
 const isDev = !!env.DEV;
 
 export type VoteMode = 'proxy-absolute' | 'proxy-relative' | 'direct' | 'unconfigured';
 
 function resolveCongressBase(): { base: string; mode: VoteMode } {
   if (apiBase) return { base: `${apiBase}/congress`, mode: 'proxy-absolute' };
-  if (isDev) return { base: '/api/congress', mode: 'proxy-relative' };
+  // A present key wins over the dev proxy, so `npm run dev` AND a static deploy
+  // both work with nothing but the pasted/hard-coded key.
   if (directKey) return { base: 'https://api.congress.gov/v3', mode: 'direct' };
+  if (isDev) return { base: '/api/congress', mode: 'proxy-relative' };
   return { base: '/api/congress', mode: 'unconfigured' };
 }
 

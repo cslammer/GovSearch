@@ -14,8 +14,15 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const apiKey = env.CONGRESS_API_KEY || env.VITE_CONGRESS_API_KEY || '';
 
+  // Base path for the built site. GitHub Pages project sites live under
+  // /<repo>/ (supplied by the deploy workflow as VITE_BASE_PATH). Normalize to a
+  // leading + trailing slash, which Vite requires.
+  let base = process.env.VITE_BASE_PATH || env.VITE_BASE_PATH || '/';
+  if (!base.startsWith('/')) base = `/${base}`;
+  if (!base.endsWith('/')) base = `${base}/`;
+
   return {
-    base: env.VITE_BASE_PATH || '/',
+    base,
     plugins: [react(), tailwindcss()],
     server: {
       proxy: {

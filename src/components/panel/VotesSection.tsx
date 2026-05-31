@@ -91,7 +91,8 @@ function NoKeyNotice() {
           <a className="font-medium text-[var(--color-accent)] hover:underline" href="https://api.data.gov/signup/" target="_blank" rel="noreferrer">
             api.data.gov/signup
           </a>{' '}
-          and set <code className="rounded bg-[var(--color-hairline-soft)] px-1 py-0.5 text-[11px]">CONGRESS_API_KEY</code>{' '}
+          and paste it into{' '}
+          <code className="rounded bg-[var(--color-hairline-soft)] px-1 py-0.5 text-[11px]">src/lib/apiKey.ts</code>{' '}
           (see the README).
         </>
       }
