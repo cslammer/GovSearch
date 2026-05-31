@@ -10,18 +10,24 @@ import '@fontsource/inter/700.css';
 
 import './index.css';
 import App from './App';
-import { persister, queryClient } from './lib/queryClient';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { CACHE_BUSTER, persister, queryClient } from './lib/queryClient';
 
 const root = document.getElementById('root')!;
 
 createRoot(root).render(
   <StrictMode>
-    {persister ? (
-      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+    <ErrorBoundary>
+      {persister ? (
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{ persister, buster: CACHE_BUSTER }}
+        >
+          <App />
+        </PersistQueryClientProvider>
+      ) : (
         <App />
-      </PersistQueryClientProvider>
-    ) : (
-      <App />
-    )}
+      )}
+    </ErrorBoundary>
   </StrictMode>,
 );

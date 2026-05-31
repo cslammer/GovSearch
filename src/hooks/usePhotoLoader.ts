@@ -46,17 +46,18 @@ export function usePhotoLoader(urls: Map<string, string>): PhotoState {
         img.src = url;
       });
 
-    // Coalesce re-renders: as images resolve we request a SINGLE re-render per
-    // animation frame instead of one every N images. This keeps newly-loaded
-    // photos appearing promptly while preventing a burst of re-renders from
-    // interrupting a hover's CSS scale transition (the cause of hover flicker).
-    let rafId = 0;
+    // Coalesce re-renders: photos resolve in a burst, but we flush at most a few
+    // times per second (a trailing-edge throttle) so newly-loaded photos appear
+    // in calm waves WITHOUT a flood of re-renders interrupting a hovered seat's
+    // CSS scale transition (the cause of the hover flicker).
+    const FLUSH_MS = 250;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const scheduleFlush = () => {
-      if (rafId || cancelled) return;
-      rafId = requestAnimationFrame(() => {
-        rafId = 0;
+      if (timer || cancelled) return;
+      timer = setTimeout(() => {
+        timer = null;
         if (!cancelled) setVersion((v) => v + 1);
-      });
+      }, FLUSH_MS);
     };
 
     idle(() => {
@@ -66,13 +67,17 @@ export function usePhotoLoader(urls: Map<string, string>): PhotoState {
         if (cancelled) return;
         scheduleFlush();
       }).then(() => {
-        if (!cancelled) scheduleFlush();
+        // Final flush so the last wave of photos always appears.
+        if (cancelled) return;
+        if (timer) clearTimeout(timer);
+        timer = null;
+        setVersion((v) => v + 1);
       });
     });
 
     return () => {
       cancelled = true;
-      if (rafId) cancelAnimationFrame(rafId);
+      if (timer) clearTimeout(timer);
     };
     // urls identity changes per chamber switch; that's the intended trigger.
   }, [urls]);

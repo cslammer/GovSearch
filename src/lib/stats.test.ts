@@ -33,6 +33,25 @@ describe('buildVoteIndex', () => {
     expect(idx.windowEnd).toBe('2025-02-02');
     expect(idx.windowStart).toBe('2025-02-01');
   });
+
+  it('survives JSON round-trip (localStorage persistence) without losing lookups', () => {
+    // Regression: byBioguide was a Map, which JSON.stringify turns into {} —
+    // crashing readers after the persisted cache rehydrated. It must be a plain
+    // object so a serialize/deserialize cycle preserves member lookups.
+    const rolls = [rc(1, [['A', 'Yea', 'D'], ['B', 'Nay', 'R']])];
+    const idx = buildVoteIndex(rolls, { chamber: 'house', congress: 119, session: 1, requested: 1, failed: 0 });
+    const rehydrated = JSON.parse(JSON.stringify(idx));
+    expect(votesForMember(rehydrated, 'A')).toHaveLength(1);
+    expect(votesForMember(rehydrated, 'B')).toHaveLength(1);
+    expect(votesForMember(rehydrated, 'missing')).toEqual([]);
+  });
+
+  it('votesForMember never throws on a malformed index', () => {
+    // A defensive guard so a bad cache entry degrades to "no votes", not a crash.
+    expect(votesForMember(undefined, 'A')).toEqual([]);
+    // @ts-expect-error intentionally malformed shape
+    expect(votesForMember({ byBioguide: null }, 'A')).toEqual([]);
+  });
 });
 
 describe('computeStats', () => {

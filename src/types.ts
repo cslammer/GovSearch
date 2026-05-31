@@ -155,7 +155,10 @@ export interface VoteIndex {
   chamber: Chamber;
   congress: number;
   session: number;
-  byBioguide: Map<string, MemberVote[]>;
+  // A plain object (not a Map) so the index survives JSON serialization to
+  // localStorage — a Map would stringify to {} and lose its methods on reload,
+  // crashing any reader that calls .get().
+  byBioguide: Record<string, MemberVote[]>;
   rollCalls: RollCall[];
   /** Roll calls successfully loaded. */
   loaded: number;

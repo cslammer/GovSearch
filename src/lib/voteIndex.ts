@@ -12,7 +12,8 @@ export interface VoteIndexMeta {
 }
 
 export function buildVoteIndex(rollCalls: RollCall[], meta: VoteIndexMeta): VoteIndex {
-  const byBioguide = new Map<string, MemberVote[]>();
+  // Plain object (not a Map) so it survives JSON persistence to localStorage.
+  const byBioguide: Record<string, MemberVote[]> = {};
 
   // Most-recent first so each member's list reads newest → oldest.
   const sorted = [...rollCalls].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
@@ -33,9 +34,9 @@ export function buildVoteIndex(rollCalls: RollCall[], meta: VoteIndexMeta): Vote
         legislationNumber: rc.legislationNumber,
         title: rc.title,
       };
-      const list = byBioguide.get(pos.bioguide);
+      const list = byBioguide[pos.bioguide];
       if (list) list.push(vote);
-      else byBioguide.set(pos.bioguide, [vote]);
+      else byBioguide[pos.bioguide] = [vote];
     }
   }
 
@@ -56,5 +57,9 @@ export function buildVoteIndex(rollCalls: RollCall[], meta: VoteIndexMeta): Vote
 }
 
 export function votesForMember(index: VoteIndex | undefined, bioguide: string): MemberVote[] {
-  return index?.byBioguide.get(bioguide) ?? [];
+  // Defensive: tolerate a malformed/absent index so a bad cache entry can never
+  // crash the panel (it just shows "no votes" instead).
+  const map = index?.byBioguide;
+  if (!map || typeof map !== 'object') return [];
+  return map[bioguide] ?? [];
 }
