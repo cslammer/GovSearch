@@ -1,0 +1,118 @@
+@import 'tailwindcss';
+
+/* ── Design tokens (Stripe-inspired: near-white, soft grays, refined accents) ── */
+@theme {
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+
+  --color-ink: #1a1f36; /* primary text */
+  --color-ink-soft: #4f566b; /* secondary text */
+  --color-ink-faint: #8792a2; /* tertiary / captions */
+  --color-canvas: #fbfbfd; /* page background */
+  --color-surface: #ffffff; /* cards / panels */
+  --color-hairline: #e6e8eb; /* 1px borders */
+  --color-hairline-soft: #eef0f3;
+
+  --color-party-d: #2f6feb;
+  --color-party-r: #d6453d;
+  --color-party-i: #4f9d77;
+
+  --color-accent: #635bff; /* Stripe-ish violet accent */
+
+  --color-yea: #2f8f5b;
+  --color-nay: #d6453d;
+  --color-present: #c9892b;
+  --color-absent: #8792a2;
+
+  --shadow-card: 0 1px 2px rgba(26, 31, 54, 0.04), 0 4px 16px rgba(26, 31, 54, 0.06);
+  --shadow-panel: 0 8px 40px rgba(26, 31, 54, 0.16);
+  --shadow-lift: 0 6px 20px rgba(26, 31, 54, 0.14);
+
+  --radius-card: 12px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────────── */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Visible, consistent focus ring for keyboard users. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect reduced-motion globally. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Subtle shimmer for loading skeletons. */
+@keyframes hc-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.hc-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-hairline-soft) 25%,
+    #f4f5f7 37%,
+    var(--color-hairline-soft) 63%
+  );
+  background-size: 200% 100%;
+  animation: hc-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Thin, unobtrusive scrollbars in the vote list / panel. */
+.hc-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-hairline) transparent;
+}
+.hc-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.hc-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-hairline);
+  border-radius: 8px;
+}
+
+.hc-seat {
+  cursor: pointer;
+  transition:
+    transform 160ms var(--ease-out),
+    filter 160ms var(--ease-out);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.hc-seat:hover,
+.hc-seat[data-active='true'] {
+  transform: scale(1.45);
+  filter: drop-shadow(0 2px 4px rgba(26, 31, 54, 0.25));
+}

@@ -1,0 +1,21 @@
+# Cloudflare Worker config for the Hemicycle data proxy.
+#
+# Deploy:
+#   cd proxy
+#   npm i -g wrangler            # or: npx wrangler ...
+#   wrangler secret put CONGRESS_API_KEY   # paste your api.data.gov key
+#   wrangler deploy
+#
+# Then point the app at it by setting, in the site's build env:
+#   VITE_API_BASE=https://hemicycle-proxy.<your-subdomain>.workers.dev
+#
+# Optionally lock CORS to your site origin:
+#   [vars]
+#   ALLOW_ORIGIN = "https://your-site.example"
+
+name = "hemicycle-proxy"
+main = "worker.ts"
+compatibility_date = "2024-11-01"
+
+# CONGRESS_API_KEY is set as a SECRET (wrangler secret put), not here, so it is
+# never committed to source control.
