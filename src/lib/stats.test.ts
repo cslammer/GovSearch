@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeStats, formatPct } from './stats';
+import { computeStats, formatPct, tallyRollCall } from './stats';
 import { buildVoteIndex, votesForMember } from './voteIndex';
 import type { RollCall, VoteCast, VotePosition } from '../types';
 import { makeMember } from '../__fixtures__/members';
@@ -80,5 +80,47 @@ describe('formatPct', () => {
   it('formats and handles null', () => {
     expect(formatPct(0.873)).toBe('87%');
     expect(formatPct(null)).toBe('—');
+  });
+});
+
+describe('tallyRollCall', () => {
+  it('counts overall positions and per-party Yea/Nay splits', () => {
+    const t = tallyRollCall(
+      rc(1, [
+        ['d1', 'Yea', 'D'],
+        ['d2', 'Yea', 'D'],
+        ['d3', 'Nay', 'D'],
+        ['r1', 'Nay', 'R'],
+        ['r2', 'Nay', 'R'],
+        ['p1', 'Present', 'R'],
+        ['n1', 'Not Voting', 'D'],
+        ['i1', 'Yea', 'I'],
+      ]),
+    );
+    expect(t.total).toBe(8);
+    expect(t.yea).toBe(3);
+    expect(t.nay).toBe(3);
+    expect(t.present).toBe(1);
+    expect(t.notVoting).toBe(1);
+    expect(t.party.D).toEqual({ yea: 2, nay: 1 });
+    expect(t.party.R).toEqual({ yea: 0, nay: 2 });
+    expect(t.party.I).toEqual({ yea: 1, nay: 0 });
+    expect(t.yeaMajorityParty).toBe('D'); // D had the most Yea votes
+  });
+
+  it('reports a Yea tie between the two parties', () => {
+    const t = tallyRollCall(
+      rc(2, [
+        ['d1', 'Yea', 'D'],
+        ['r1', 'Yea', 'R'],
+        ['r2', 'Nay', 'R'],
+      ]),
+    );
+    expect(t.yeaMajorityParty).toBe('tie');
+  });
+
+  it('reports null when there are no Yea votes', () => {
+    const t = tallyRollCall(rc(3, [['d1', 'Nay', 'D']]));
+    expect(t.yeaMajorityParty).toBeNull();
   });
 });

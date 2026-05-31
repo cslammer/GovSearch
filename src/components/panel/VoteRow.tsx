@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { MemberVote } from '../../types';
+import type { RollCallTally } from '../../lib/stats';
 import { useBillSummary } from '../../hooks/useBillSummary';
 import { summarize } from '../../lib/summarize';
 import { billWebUrl } from '../../lib/congressApi';
 import { formatDate, voteTone } from '../../lib/format';
+import { PARTY_COLOR } from '../../lib/party';
 
 const TONE_COLOR: Record<string, string> = {
   yea: 'var(--color-yea)',
@@ -20,7 +22,7 @@ function measureLabel(v: MemberVote): string {
   return v.question || 'Procedural vote';
 }
 
-export function VoteRow({ vote }: { vote: MemberVote }) {
+export function VoteRow({ vote, tally }: { vote: MemberVote; tally?: RollCallTally }) {
   const [open, setOpen] = useState(false);
   const hasBill = !!vote.legislationType && !!vote.legislationNumber;
   const summaryQ = useBillSummary(vote.congress, vote.legislationType, vote.legislationNumber, open && hasBill);
@@ -66,6 +68,7 @@ export function VoteRow({ vote }: { vote: MemberVote }) {
                   <span className="text-[var(--color-ink-faint)]">Outcome:</span> {vote.result}
                 </p>
               )}
+              {tally && <VoteTally tally={tally} />}
               {hasBill ? (
                 <BillSummary
                   loading={summaryQ.isLoading}
@@ -93,6 +96,70 @@ export function VoteRow({ vote }: { vote: MemberVote }) {
         )}
       </AnimatePresence>
     </li>
+  );
+}
+
+// Roll-call tally: overall Yea/Nay, a plain-language "which party carried it"
+// line, and the per-party Yea–Nay breakdown.
+function VoteTally({ tally }: { tally: RollCallTally }) {
+  const total = tally.yea + tally.nay;
+  const yeaPct = total > 0 ? (tally.yea / total) * 100 : 0;
+
+  let carried: string;
+  if (tally.yeaMajorityParty === 'D') carried = 'Mostly Democrats voted Yea';
+  else if (tally.yeaMajorityParty === 'R') carried = 'Mostly Republicans voted Yea';
+  else if (tally.yeaMajorityParty === 'tie') carried = 'Yea votes split evenly between parties';
+  else carried = 'No Yea votes recorded';
+
+  return (
+    <div className="mb-2 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] p-2.5">
+      <div className="flex items-baseline justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">
+          Roll call
+        </span>
+        <span className="tabular-nums text-[12px] text-[var(--color-ink-soft)]">
+          <span style={{ color: 'var(--color-yea)' }}>{tally.yea} Yea</span>
+          {' · '}
+          <span style={{ color: 'var(--color-nay)' }}>{tally.nay} Nay</span>
+          {tally.present > 0 && ` · ${tally.present} Present`}
+          {tally.notVoting > 0 && ` · ${tally.notVoting} NV`}
+        </span>
+      </div>
+
+      {/* Yea/Nay proportion bar */}
+      <div className="mt-1.5 flex h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-hairline-soft)]">
+        <div style={{ width: `${yeaPct}%`, backgroundColor: 'var(--color-yea)' }} />
+        <div style={{ width: `${100 - yeaPct}%`, backgroundColor: 'var(--color-nay)' }} />
+      </div>
+
+      <p className="mt-1.5 text-[11px] text-[var(--color-ink-soft)]">{carried}</p>
+
+      {/* Per-party Yea–Nay breakdown */}
+      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] tabular-nums">
+        <PartyLine label="Democrats" split={tally.party.D} color={PARTY_COLOR.D} />
+        <PartyLine label="Republicans" split={tally.party.R} color={PARTY_COLOR.R} />
+        {(tally.party.I.yea > 0 || tally.party.I.nay > 0) && (
+          <PartyLine label="Independents" split={tally.party.I} color={PARTY_COLOR.I} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PartyLine({
+  label,
+  split,
+  color,
+}: {
+  label: string;
+  split: { yea: number; nay: number };
+  color: string;
+}) {
+  return (
+    <span className="flex items-center gap-1 text-[var(--color-ink-soft)]">
+      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+      {label}: {split.yea}–{split.nay}
+    </span>
   );
 }
 

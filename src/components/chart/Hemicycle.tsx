@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Member } from '../../types';
 import { computeSeating, type PlacedSeat } from '../../lib/seating';
 import { usePhotoLoader } from '../../hooks/usePhotoLoader';
@@ -25,7 +25,9 @@ interface HemicycleProps {
   onHover: (seat: PlacedSeat | null, clientX: number, clientY: number) => void;
 }
 
-export function Hemicycle({
+// Memoized so tooltip updates in the parent (fired on every mousemove) don't
+// re-render the whole 435-seat chart — all props from App are stable.
+function HemicycleInner({
   members,
   selectedBioguide,
   focusBioguide,
@@ -120,6 +122,18 @@ export function Hemicycle({
     node?.focus({ preventScroll: true });
   }, [activeIndex]);
 
+  // Stable per-seat select handler so Seat's memo holds (an inline arrow here
+  // would be a new function every render, defeating memoization and causing all
+  // 435 seats to re-render whenever photos load in).
+  const handleSeatSelect = useCallback(
+    (seat: PlacedSeat) => {
+      const i = indexByBioguide.get(seat.member.bioguide);
+      if (i != null) setActiveIndex(i);
+      onSelect(seat.member);
+    },
+    [indexByBioguide, onSelect],
+  );
+
   // Labels: only the widest wedges get a faint state code (greedy de-overlap).
   const labels = useMemo(() => pickLabels(wedges), [wedges]);
 
@@ -185,10 +199,7 @@ export function Hemicycle({
                 isDimmed={!!focusBioguide && seat.member.bioguide !== focusBioguide}
                 tabIndex={i === activeIndex ? 0 : -1}
                 onHover={onHover}
-                onSelect={(s) => {
-                  setActiveIndex(i);
-                  onSelect(s.member);
-                }}
+                onSelect={handleSeatSelect}
               />
             </g>
           ))}
@@ -203,6 +214,8 @@ export function Hemicycle({
     </div>
   );
 }
+
+export const Hemicycle = memo(HemicycleInner);
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 

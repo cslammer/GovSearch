@@ -88,3 +88,54 @@ export function formatPct(pct: number | null): string {
   if (pct === null) return '—';
   return `${Math.round(pct * 100)}%`;
 }
+
+// ── Per-roll-call tallies (for the expanded vote row) ────────────────────────
+
+export interface PartySplit {
+  yea: number;
+  nay: number;
+}
+
+export interface RollCallTally {
+  /** Members with a recorded position. */
+  total: number;
+  yea: number;
+  nay: number;
+  present: number;
+  notVoting: number;
+  /** Yea/Nay counts broken down by party. */
+  party: { D: PartySplit; R: PartySplit; I: PartySplit };
+  /** Which party cast the most "Yea" votes: 'D' | 'R' | 'tie' | null (no Yea). */
+  yeaMajorityParty: 'D' | 'R' | 'tie' | null;
+}
+
+/** Tally a roll call's positions: overall counts + per-party Yea/Nay split. */
+export function tallyRollCall(rc: RollCall): RollCallTally {
+  const t: RollCallTally = {
+    total: 0,
+    yea: 0,
+    nay: 0,
+    present: 0,
+    notVoting: 0,
+    party: { D: { yea: 0, nay: 0 }, R: { yea: 0, nay: 0 }, I: { yea: 0, nay: 0 } },
+    yeaMajorityParty: null,
+  };
+  for (const p of rc.positions) {
+    t.total += 1;
+    if (p.voteCast === 'Yea') {
+      t.yea += 1;
+      t.party[p.party].yea += 1;
+    } else if (p.voteCast === 'Nay') {
+      t.nay += 1;
+      t.party[p.party].nay += 1;
+    } else if (p.voteCast === 'Present') {
+      t.present += 1;
+    } else {
+      t.notVoting += 1;
+    }
+  }
+  const dy = t.party.D.yea;
+  const ry = t.party.R.yea;
+  t.yeaMajorityParty = t.yea === 0 ? null : dy > ry ? 'D' : ry > dy ? 'R' : 'tie';
+  return t;
+}

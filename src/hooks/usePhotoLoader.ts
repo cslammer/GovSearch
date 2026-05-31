@@ -46,21 +46,33 @@ export function usePhotoLoader(urls: Map<string, string>): PhotoState {
         img.src = url;
       });
 
+    // Coalesce re-renders: as images resolve we request a SINGLE re-render per
+    // animation frame instead of one every N images. This keeps newly-loaded
+    // photos appearing promptly while preventing a burst of re-renders from
+    // interrupting a hover's CSS scale transition (the cause of hover flicker).
+    let rafId = 0;
+    const scheduleFlush = () => {
+      if (rafId || cancelled) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        if (!cancelled) setVersion((v) => v + 1);
+      });
+    };
+
     idle(() => {
       if (cancelled) return;
-      // Modest concurrency; bump version periodically so seats fade in in waves.
-      let sinceFlush = 0;
       runWithConcurrency(pending, 12, async (entry) => {
         await load(entry);
         if (cancelled) return;
-        if (++sinceFlush % 8 === 0) setVersion((v) => v + 1);
+        scheduleFlush();
       }).then(() => {
-        if (!cancelled) setVersion((v) => v + 1);
+        if (!cancelled) scheduleFlush();
       });
     });
 
     return () => {
       cancelled = true;
+      if (rafId) cancelAnimationFrame(rafId);
     };
     // urls identity changes per chamber switch; that's the intended trigger.
   }, [urls]);

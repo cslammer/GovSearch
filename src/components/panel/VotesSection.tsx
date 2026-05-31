@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import type { Chamber, Member, VoteIndex } from '../../types';
+import type { RollCallTally } from '../../lib/stats';
 import { config } from '../../lib/config';
-import { computeStats } from '../../lib/stats';
+import { computeStats, tallyRollCall } from '../../lib/stats';
 import { votesForMember } from '../../lib/voteIndex';
 import { formatDate } from '../../lib/format';
 import { VoteStats } from './VoteStats';
@@ -29,6 +31,14 @@ function windowLabel(index: VoteIndex): string {
 // a friendly notice when votes aren't configured for this chamber.
 export function VotesSection({ member, chamber, index, isLoading, isError }: VotesSectionProps) {
   const configured = chamber === 'house' ? config.votesConfigured : config.senateConfigured;
+
+  // Tally every roll call once (overall counts + per-party Yea/Nay), keyed by
+  // rollId, so each expanded vote row can show the breakdown without recomputing.
+  const tallies = useMemo(() => {
+    const m = new Map<string, RollCallTally>();
+    if (index) for (const rc of index.rollCalls) m.set(rc.rollId, tallyRollCall(rc));
+    return m;
+  }, [index]);
 
   if (!configured) {
     return chamber === 'senate' ? <SenateNotice /> : <NoKeyNotice />;
@@ -61,7 +71,7 @@ export function VotesSection({ member, chamber, index, isLoading, isError }: Vot
   return (
     <div className="space-y-4">
       <VoteStats stats={stats} />
-      <VoteList votes={votes} />
+      <VoteList votes={votes} tallies={tallies} />
     </div>
   );
 }

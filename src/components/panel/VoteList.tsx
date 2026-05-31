@@ -1,16 +1,18 @@
 import { useMemo, useState } from 'react';
 import type { MemberVote, VoteCast } from '../../types';
+import type { RollCallTally } from '../../lib/stats';
 import { VoteFilter, type VoteFilterValue } from './VoteFilter';
 import { VoteRow } from './VoteRow';
 import { MessageState } from '../states/MessageState';
 
 interface VoteListProps {
   votes: MemberVote[];
+  tallies: Map<string, RollCallTally>;
 }
 
 const CASTS: VoteCast[] = ['Yea', 'Nay', 'Present', 'Not Voting'];
 
-export function VoteList({ votes }: VoteListProps) {
+export function VoteList({ votes, tallies }: VoteListProps) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<VoteFilterValue>('all');
 
@@ -52,7 +54,7 @@ export function VoteList({ votes }: VoteListProps) {
       ) : (
         <ul className="mt-2">
           {filtered.map((v) => (
-            <VoteRow key={v.rollId} vote={v} />
+            <VoteRow key={v.rollId} vote={v} tally={tallies.get(v.rollId)} />
           ))}
         </ul>
       )}
