@@ -1,5 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import { removeOldestQuery } from '@tanstack/react-query-persist-client';
 
 // Votes and bill summaries are effectively immutable once recorded, so we cache
 // hard and persist to localStorage — a revisit is instant and saves API budget.
@@ -34,5 +35,12 @@ if (typeof window !== 'undefined') {
 
 export const persister =
   typeof window !== 'undefined'
-    ? createSyncStoragePersister({ storage: window.localStorage, key: CACHE_KEY })
+    ? createSyncStoragePersister({
+        storage: window.localStorage,
+        key: CACHE_KEY,
+        // A deeper vote window makes the cache larger; if it ever exceeds the
+        // localStorage quota, drop the oldest query and retry instead of
+        // throwing (which would otherwise abort persistence entirely).
+        retry: removeOldestQuery,
+      })
     : undefined;

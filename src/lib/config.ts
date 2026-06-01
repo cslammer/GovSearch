@@ -77,3 +77,22 @@ export function sessionForDate(date = new Date()): number {
 
 export const CURRENT_CONGRESS = congressForDate();
 export const CURRENT_SESSION = sessionForDate();
+
+/**
+ * (congress, session) pairs to walk when gathering the vote history, ordered
+ * NEWEST first — from the given current Congress/session back to `earliest`.
+ * The vote APIs (Congress.gov + Senate.gov) only cover the 118th Congress
+ * onward, so `earliest` defaults to 118.
+ */
+export function voteSessionsNewestFirst(
+  currentCongress: number,
+  currentSession: number,
+  earliest = 118,
+): Array<[congress: number, session: number]> {
+  const pairs: Array<[number, number]> = [];
+  for (let congress = currentCongress; congress >= earliest; congress--) {
+    const maxSession = congress === currentCongress ? currentSession : 2;
+    for (let session = maxSession; session >= 1; session--) pairs.push([congress, session]);
+  }
+  return pairs;
+}
